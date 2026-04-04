@@ -4,6 +4,8 @@ Sahayak is a split-repo demo app with a Vite client in `client/` and an Express 
 
 ## What's Included
 
+- Live demo: https://sahayak-ai-mocha.vercel.app/
+
 - Real-time request, heatmap, and stats updates over Socket.IO
 - SMS demo flow with OTP simulation
 - Analytics dashboard backed by `/api/analytics`
