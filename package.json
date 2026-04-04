@@ -8,7 +8,9 @@
     "dev:client": "npm run dev --prefix client",
     "dev:server": "npm run dev --prefix server",
     "build:client": "npm run build --prefix client",
-    "start:server": "npm run start --prefix server"
+    "start:server": "npm run start --prefix server",
+    "build": "npm run build --prefix client",
+    "preview": "npm run preview --prefix client"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
