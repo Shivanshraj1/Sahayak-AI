@@ -179,6 +179,9 @@ export default function NGODashboard({ navigate, socketData }) {
         ),
       )
       setRequests(nextStore.requests || [])
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sahayak_demo_update'))
+      }
       setActionLoading((prev) => ({ ...prev, [requestId]: null }))
       return
     }
@@ -209,6 +212,9 @@ export default function NGODashboard({ navigate, socketData }) {
         ),
       )
       setRequests(nextStore.requests || [])
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sahayak_demo_update'))
+      }
       setActionLoading((prev) => ({ ...prev, [requestId]: null }))
       return
     }
@@ -234,6 +240,9 @@ export default function NGODashboard({ navigate, socketData }) {
         ),
       )
       setRequests(nextStore.requests || [])
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sahayak_demo_update'))
+      }
       setActionLoading((prev) => ({ ...prev, [requestId]: null }))
       return
     }

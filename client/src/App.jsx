@@ -41,7 +41,7 @@ function AppContent() {
       case 'ngo-dashboard':
         return <NGODashboard navigate={navigate} socketData={socketData} currentPage={currentPage} />
       case 'analytics':
-        return <Analytics />
+        return <Analytics socketData={socketData} />
       case 'auth':
         return <AuthPage navigate={navigate} />
       case 'auth-user':

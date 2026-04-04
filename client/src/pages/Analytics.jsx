@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../services/api.js'
+import { useAuth } from '../context/AuthContext.jsx'
+import { getDemoStore } from '../services/demoStore.js'
 
 const EMPTY_DATA = {
   stats: { requestsToday: 0, pendingCount: 0, criticalCount: 0, avgResponseMin: 0, ngosActive: 0 },
@@ -58,18 +60,143 @@ function Panel({ title, subtitle, children }) {
   )
 }
 
-export default function Analytics() {
+function buildDemoAnalytics(store) {
+  const requests = store?.requests || []
+  const byType = {}
+  const byUrgency = {}
+  const byStatus = {}
+  const byArea = {}
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  let todayCount = 0
+  let todayFulfilled = 0
+  let totalFulfilled = 0
+
+  requests.forEach((r) => {
+    const type = String(r.type || r.selectedNeed || r.aiCategory || 'other').toUpperCase()
+    const urgency = String(r.urgency || r.urgencyLevel || 'medium').toUpperCase()
+    const status = String(r.status || 'pending').toUpperCase()
+    const area = r.area || 'Unknown'
+    const createdAt = r.createdAt ? new Date(r.createdAt) : null
+
+    byType[type] = (byType[type] || 0) + 1
+    byUrgency[urgency] = (byUrgency[urgency] || 0) + 1
+    byStatus[status] = (byStatus[status] || 0) + 1
+    byArea[area] = (byArea[area] || 0) + 1
+
+    if (createdAt && createdAt >= todayStart) {
+      todayCount += 1
+      if (status === 'FULFILLED') todayFulfilled += 1
+    }
+    if (status === 'FULFILLED') totalFulfilled += 1
+  })
+
+  const topAreas = Object.entries(byArea)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([area, count]) => ({ area, count }))
+
+  const ngoPerformanceMap = new Map()
+  requests.forEach((r) => {
+    const ngoName = r.assignedNgoName || r.matchedNgo || null
+    if (!ngoName) return
+    const status = String(r.status || 'pending').toUpperCase()
+    const entry = ngoPerformanceMap.get(ngoName) || {
+      name: ngoName,
+      fulfilled: 0,
+      matched: 0,
+      capacity: 10,
+      rating: 4.5,
+    }
+    entry.matched += 1
+    if (status === 'FULFILLED') entry.fulfilled += 1
+    ngoPerformanceMap.set(ngoName, entry)
+  })
+
+  const ngoPerformance = Array.from(ngoPerformanceMap.values()).sort((a, b) => b.fulfilled - a.fulfilled)
+  const pendingCount = byStatus.PENDING || 0
+  const criticalCount = requests.filter(
+    (r) => String(r.urgency || r.urgencyLevel || '').toLowerCase() === 'critical' && String(r.status || '').toLowerCase() === 'pending',
+  ).length
+  const totalRequests = requests.length
+
+  return {
+    byType,
+    byUrgency,
+    byStatus,
+    topAreas,
+    ngoPerformance,
+    stats: {
+      requestsToday: todayCount,
+      fulfilledToday: todayFulfilled,
+      pendingCount,
+      criticalCount,
+      totalFulfilled,
+      avgResponseMin: 23,
+      totalRequests,
+      ngosActive: ngoPerformance.length || 1,
+    },
+  }
+}
+
+export default function Analytics({ socketData }) {
+  const { user, getToken } = useAuth()
+  const demoUserId = String(user?.id || '').toUpperCase()
+  const isDemoUser = demoUserId.startsWith('DEMO-')
+  const demoToken = typeof getToken === 'function' ? getToken() : null
+  const isDemoToken = typeof demoToken === 'string' && demoToken.startsWith('demo-')
+  const isDemo = isDemoUser || isDemoToken
   const [data, setData] = useState(EMPTY_DATA)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [syncing, setSyncing] = useState(false)
   const donutRef = useRef(null)
   const responseRef = useRef(null)
   const typeRef = useRef(null)
+  const refreshTimerRef = useRef(null)
+
+  const refreshAnalytics = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!silent) {
+        setSyncing(true)
+      }
+      if (isDemo) {
+        const store = getDemoStore()
+        setData(buildDemoAnalytics(store))
+        setError('')
+        if (!silent) setSyncing(false)
+        return
+      }
+
+      const { data: next, error: err } = await api.getAnalytics()
+      if (next) {
+        setData(next)
+        setError('')
+      }
+      if (err) {
+        setError('Unable to load analytics data.')
+      }
+      if (!silent) {
+        setSyncing(false)
+      }
+    },
+    [isDemo],
+  )
 
   useEffect(() => {
     let active = true
-    api
-      .getAnalytics()
+    if (isDemo) {
+      const store = getDemoStore()
+      if (active) {
+        setData(buildDemoAnalytics(store))
+        setLoading(false)
+      }
+      return () => {
+        active = false
+      }
+    }
+
+    api.getAnalytics()
       .then(({ data: next, error: err }) => {
         if (!active) return
         if (next) setData(next)
@@ -81,7 +208,57 @@ export default function Analytics() {
     return () => {
       active = false
     }
-  }, [])
+  }, [isDemo])
+
+  useEffect(() => {
+    if (isDemo) return undefined
+    const total = socketData?.stats?.totalRequests ?? socketData?.stats?.requestsToday ?? null
+    const fulfilled = socketData?.stats?.totalFulfilled ?? null
+    const pending = socketData?.stats?.pendingCount ?? null
+
+    if (total == null && fulfilled == null && pending == null) {
+      return undefined
+    }
+
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current)
+    }
+
+    refreshTimerRef.current = setTimeout(() => {
+      refreshAnalytics({ silent: false })
+    }, 500)
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
+    }
+  }, [isDemo, socketData?.stats?.totalRequests, socketData?.stats?.requestsToday, socketData?.stats?.totalFulfilled, socketData?.stats?.pendingCount, refreshAnalytics])
+
+  useEffect(() => {
+    if (isDemo) return undefined
+    const interval = setInterval(() => {
+      refreshAnalytics({ silent: true })
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [isDemo, refreshAnalytics])
+
+  useEffect(() => {
+    if (!isDemo) return undefined
+    const refreshDemo = () => refreshAnalytics({ silent: true })
+    const handleStorage = (event) => {
+      if (event.key === 'sahayak_demo_store_v2') {
+        refreshDemo()
+      }
+    }
+    window.addEventListener('sahayak_demo_update', refreshDemo)
+    window.addEventListener('storage', handleStorage)
+    return () => {
+      window.removeEventListener('sahayak_demo_update', refreshDemo)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [isDemo, refreshAnalytics])
 
   const fulfilled = data.byStatus?.FULFILLED || 0
   const total = Object.values(data.byStatus || {}).reduce((sum, value) => sum + value, 0) || 1
@@ -170,11 +347,11 @@ export default function Analytics() {
           </div>
           <div
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-widest ${
-              loading ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+              loading || syncing ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${loading ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-            {loading ? 'Loading Data' : 'Live Data'}
+            <span className={`w-2 h-2 rounded-full ${loading || syncing ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+            {loading ? 'Loading Data' : syncing ? 'Syncing' : 'Live Data'}
           </div>
         </header>
 

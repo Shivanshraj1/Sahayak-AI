@@ -100,6 +100,9 @@ export default function VolunteerDashboard({ navigate, socketData }) {
         points: (user?.points || 0) + pointsAwarded,
         deliveries: (user?.deliveries || 0) + 1,
       })
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sahayak_demo_update'))
+      }
       setActionLoading((prev) => ({ ...prev, [missionId]: false }))
       return
     }
