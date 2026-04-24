@@ -1,20 +1,65 @@
-# Sahayak-AI
+Sahayak-AI
 
-Sahayak is a split-repo demo app with a Vite client in `client/` and an Express plus Socket.IO backend in `server/`.
+Sahayak is a full-stack, real-time platform designed to connect people in need with NGOs, volunteers, and donors efficiently. It bridges the gap between available resources and urgent needs using live updates, smart matching, and location-based insights.
 
-## What's Included
+Live Demo
 
-- Live demo: https://sahayak-ai-mocha.vercel.app/
+https://sahayak-ai-mocha.vercel.app/
 
-- Real-time request, heatmap, and stats updates over Socket.IO
-- SMS demo flow with OTP simulation
-- Analytics dashboard backed by `/api/analytics`
-- In-memory backend with optional Claude triage
-- Demo seed script in `scripts/seed.js`
+Features
 
-## Project Layout
+Real-time updates using Socket.IO
 
-```text
+Live heatmaps for demand visualization
+
+Smart matching between requests and NGOs
+
+Analytics dashboard (/api/analytics)
+
+SMS-based request flow with OTP simulation
+
+Live stats and request tracking
+
+Demo data seeding script
+
+
+Problem Statement
+
+Many people still struggle to access basic needs like food, shelter, and medical assistance, even when resources exist.
+
+The core issue is lack of coordination and connectivity:
+
+NGOs and volunteers don’t know who needs help or where
+
+People in need lack a simple way to request support
+
+Delays lead to inefficient resource usage
+
+
+Solution
+
+Sahayak creates a real-time bridge between need and help.
+
+Users can easily raise requests
+
+NGOs and volunteers can instantly view and respond
+
+Location and urgency-based matching ensures efficiency
+
+
+Result:
+
+Faster response
+
+Better coordination
+
+Reduced resource waste
+
+Greater impact
+
+
+Project Structure
+
 Sahayak-AI/
 |-- client/
 |   |-- src/
@@ -30,71 +75,107 @@ Sahayak-AI/
 |-- scripts/
 |   `-- seed.js
 `-- .env.example
-```
 
-## Setup
+Setup Instructions
 
 1. Install frontend dependencies:
 
-```bash
+
+
 cd client
 npm install
-```
 
 2. Install backend dependencies:
 
-```bash
+
+
 cd ../server
 npm install
-```
 
-3. Create environment files:
+3. Setup environment variables:
 
-```bash
+
+
 cd ../client
 cp .env.example .env
 
 cd ../server
 cp .env.example .env
-```
 
-4. Start frontend + backend together (recommended):
+Run the Project
 
-```bash
+Run frontend and backend together:
+
 npm run live
-```
 
-Or run them separately:
+Or run separately:
 
-```bash
+Frontend:
+
 cd client
 npm run dev
-```
 
-```bash
+Backend:
+
 cd server
 npm run dev
-```
 
-5. Start only the backend:
+Backend only (production mode):
 
-```bash
 cd server
 npm start
-```
 
-## Key API Endpoints
+API Endpoints
 
-- `POST /api/triage`
-- `POST /api/requests`
-- `GET /api/requests`
-- `POST /api/match`
-- `PATCH /api/requests/:id/status`
-- `GET /api/ngos`
-- `PATCH /api/ngos/:id/resources`
-- `POST /api/sms/simulate`
-- `POST /api/sms/verify`
-- `GET /api/heatmap`
-- `GET /api/analytics`
-- `GET /api/stats`
-- `GET /health`
+Requests and Matching:
+
+POST /api/triage
+
+POST /api/requests
+
+GET /api/requests
+
+POST /api/match
+
+PATCH /api/requests/:id/status
+
+
+NGOs:
+
+GET /api/ngos
+
+PATCH /api/ngos/:id/resources
+
+
+SMS Simulation:
+
+POST /api/sms/simulate
+
+POST /api/sms/verify
+
+
+Analytics and Insights:
+
+GET /api/heatmap
+
+GET /api/analytics
+
+GET /api/stats
+
+
+Health Check:
+
+GET /health
+
+
+Demo Data
+
+To populate the app with sample data:
+
+node scripts/seed.js
+
+Vision
+
+Sahayak transforms scattered efforts into a connected, efficient support system that ensures the right help reaches the right person at the right time.
+
+
